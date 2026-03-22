@@ -622,6 +622,7 @@ async function attemptTurnstileCdp(page) {
     }
 
     console.log('完成。');
+    console.log(JSON.stringify({ success: true }));
     await browser.close();
     process.exit(0);
 })();
