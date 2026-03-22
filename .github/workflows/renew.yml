@@ -17,9 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    # 恢复 cache（使用 restore-keys）
     - name: Restore state cache
-      id: cache-restore
       uses: actions/cache@v4
       with:
         path: |
@@ -44,22 +42,26 @@ jobs:
         npm install
         npx playwright install-deps chrome
 
-    - name: Run Check or Retry
+    # 这里用 YAML 判断，而不是脚本判断
+    - name: Run daily check
+      if: github.event.schedule == '0 0 * * *' || github.event_name == 'workflow_dispatch'
       env:
         USERS_JSON: ${{ secrets.USERS_JSON }}
         HTTP_PROXY: ${{ secrets.HTTP_PROXY }}
         TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
         TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-      run: |
-        if [ "${{ github.event.schedule }}" = "0 0 * * *" ]; then
-          ./check_and_trigger.sh
-        else
-          ./retry_if_needed.sh
-        fi
+      run: ./check_and_trigger.sh
 
-    # 保存 cache（使用唯一 key）
+    - name: Run retry
+      if: github.event.schedule == '0 */4 * * *'
+      env:
+        USERS_JSON: ${{ secrets.USERS_JSON }}
+        HTTP_PROXY: ${{ secrets.HTTP_PROXY }}
+        TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+        TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+      run: ./retry_if_needed.sh
+
     - name: Save state cache
-      if: always()
       uses: actions/cache@v4
       with:
         path: |
