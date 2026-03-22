@@ -25,7 +25,7 @@ jobs:
         path: |
           .last_success
           .need_retry
-        key: renew-state-
+        key: renew-state-restore
         restore-keys: |
           renew-state-
 
