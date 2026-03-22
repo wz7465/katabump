@@ -2,11 +2,10 @@ name: Katabump Auto Renew
 
 on:
   schedule:
-    - cron: '0 0 * * *'        # 每天检查是否到达 4 天周期
-    - cron: '0 */4 * * *'      # 当天失败时每 4 小时重试
+    - cron: '0 0 * * *'
+    - cron: '0 */4 * * *'
   workflow_dispatch:
 
-# 🔒 加锁：避免 daily check 和 retry 并发运行
 concurrency:
   group: renew-lock
   cancel-in-progress: false
@@ -18,14 +17,17 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    # 恢复状态文件（.last_success / .need_retry）
+    # 恢复 cache（使用 restore-keys）
     - name: Restore state cache
+      id: cache-restore
       uses: actions/cache@v4
       with:
         path: |
           .last_success
           .need_retry
-        key: renew-state
+        key: renew-state-
+        restore-keys: |
+          renew-state-
 
     - name: Make scripts executable
       run: chmod +x *.sh
@@ -50,21 +52,20 @@ jobs:
         TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
       run: |
         if [ "${{ github.event.schedule }}" = "0 0 * * *" ]; then
-          echo "Running daily check..."
           ./check_and_trigger.sh
         else
-          echo "Running retry..."
           ./retry_if_needed.sh
         fi
 
-    # 保存状态文件到 cache
+    # 保存 cache（使用唯一 key）
     - name: Save state cache
+      if: always()
       uses: actions/cache@v4
       with:
         path: |
           .last_success
           .need_retry
-        key: renew-state
+        key: renew-state-${{ github.run_id }}
 
     - name: Upload Screenshots
       if: always()
