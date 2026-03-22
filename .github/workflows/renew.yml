@@ -2,39 +2,69 @@ name: Katabump Auto Renew
 
 on:
   schedule:
-    # 每天 UTC 0点 (北京时间 8点) 运行
-    - cron: '0 0 * * *'
-  workflow_dispatch: # 允许手动触发
+    - cron: '0 0 * * *'        # 每天检查是否到达 4 天周期
+    - cron: '0 */4 * * *'      # 当天失败时每 4 小时重试
+  workflow_dispatch:
+
+# 🔒 加锁：避免 daily check 和 retry 并发运行
+concurrency:
+  group: renew-lock
+  cancel-in-progress: false
 
 jobs:
   renew:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
+    # 恢复状态文件（.last_success / .need_retry）
+    - name: Restore state cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          .last_success
+          .need_retry
+        key: renew-state
+
+    - name: Make scripts executable
+      run: chmod +x *.sh
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        
+
     - name: Install Dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y xvfb
         npm install
         npx playwright install-deps chrome
-      
-    - name: Run Renew Script
+
+    - name: Run Check or Retry
       env:
-        # 将 USERS_JSON 配置在 GitHub Repository Secrets 中
-        # 格式: [{"username": "xxx", "password": "xxx"}, ...]
         USERS_JSON: ${{ secrets.USERS_JSON }}
         HTTP_PROXY: ${{ secrets.HTTP_PROXY }}
         TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
         TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-      # 使用 xvfb-run 模拟有头环境运行
-      run: xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" node action_renew.js
+      run: |
+        if [ "${{ github.event.schedule }}" = "0 0 * * *" ]; then
+          echo "Running daily check..."
+          ./check_and_trigger.sh
+        else
+          echo "Running retry..."
+          ./retry_if_needed.sh
+        fi
+
+    # 保存状态文件到 cache
+    - name: Save state cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          .last_success
+          .need_retry
+        key: renew-state
 
     - name: Upload Screenshots
       if: always()
