@@ -529,8 +529,7 @@ async function attemptTurnstileCdp(page) {
                                     const match = text.match(/as of\s+(.*?)\s+\(/);
                                     let dateStr = match ? match[1] : 'Unknown Date';
                                     console.log(`   >> ⏳ 暂无法续期。下次可用时间: ${dateStr}`);
-                                    console.log(JSON.stringify({ success: false }));
-                                    return;
+
                                     // 截图证明
                                     const fs = require('fs');
                                     const path = require('path');
@@ -566,8 +565,7 @@ async function attemptTurnstileCdp(page) {
                         await page.waitForTimeout(2000);
                         if (!await modal.isVisible()) {
                             console.log('   >> ✅ Modal closed. Renew successful!');
-                            console.log(JSON.stringify({ success: true }));
-                            return;
+
                             // 截图成功状态
                             const fs = require('fs');
                             const path = require('path');
@@ -622,7 +620,6 @@ async function attemptTurnstileCdp(page) {
     }
 
     console.log('完成。');
-    console.log(JSON.stringify({ success: true }));
     await browser.close();
     process.exit(0);
 })();
