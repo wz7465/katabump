@@ -3,28 +3,19 @@
 STATE=".last_success"
 RETRY=".need_retry"
 
-# 如果没有记录，初始化为 5 天前（确保第一次会执行）
-if [ ! -f "$STATE" ]; then
-    date -d "5 days ago" +%s > $STATE
-fi
+echo "Running renew task..."
 
-LAST=$(cat $STATE)
-NOW=$(date +%s)
-DIFF=$(( (NOW - LAST) / 86400 ))
+# 执行 action_renew.js 并捕获输出
+RESULT=$(xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" node action_renew.js)
 
-echo "Last success: $DIFF days ago"
+echo "$RESULT"
 
-if [ $DIFF -ge 4 ]; then
-    echo "It's time to run the task."
-
-    if xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" node action_renew.js; then
-        echo "Task succeeded."
-        date +%s > $STATE
-        rm -f "$RETRY"
-    else
-        echo "Task failed. Marking for retry."
-        touch "$RETRY"
-    fi
+# 判断是否真正续期成功
+if echo "$RESULT" | grep -q '"success":true'; then
+    echo "真正续期成功！"
+    date +%s > "$STATE"
+    rm -f "$RETRY"
 else
-    echo "Not time yet. No action."
+    echo "未续期成功（可能还没到时间）"
+    touch "$RETRY"
 fi
