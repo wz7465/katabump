@@ -2,8 +2,8 @@ name: Katabump Auto Renew
 
 on:
   schedule:
-    - cron: '0 0 * * *'      # 每天 00:00 执行（主任务）
-    - cron: '0 */4 * * *'    # 每 4 小时执行一次（retry）
+    - cron: '0 0 * * *'
+    - cron: '0 */4 * * *'
   workflow_dispatch:
 
 concurrency:
@@ -42,18 +42,7 @@ jobs:
         npm install
         npx playwright install-deps chrome
 
-    # ==================== 新增：安装 Google Chrome（关键修复）====================
-    - name: Install Google Chrome
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y wget gnupg
-        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg
-        echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-        sudo apt-get update
-        sudo apt-get install -y google-chrome-stable
-    # =============================================================================
-
-    # 每天主任务（00:00 或手动触发）
+    # 这里用 YAML 判断，而不是脚本判断
     - name: Run daily check
       if: github.event.schedule == '0 0 * * *' || github.event_name == 'workflow_dispatch'
       env:
@@ -63,7 +52,6 @@ jobs:
         TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
       run: ./check_and_trigger.sh
 
-    # 每4小时 retry 任务
     - name: Run retry
       if: github.event.schedule == '0 */4 * * *'
       env:
