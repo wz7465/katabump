@@ -3,8 +3,8 @@
 echo "DEBUG: SCRIPT PATH=$(realpath "$0")"
 
 # === 状态文件放在仓库目录（可被 GitHub Actions cache 持久化） ===
-STATE="./.katabump_last_success"
-RETRY="./.katabump_need_retry"
+STATE="$GITHUB_WORKSPACE/.katabump_last_success"
+RETRY="$GITHUB_WORKSPACE/.katabump_need_retry"
 
 echo "DEBUG: USING STATE=$STATE"
 echo "DEBUG: USING RETRY=$RETRY"
