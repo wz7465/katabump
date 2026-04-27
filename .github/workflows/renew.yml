@@ -11,24 +11,71 @@ on:
 concurrency:
   group: renew-${{ github.event.schedule || github.event_name }}
   cancel-in-progress: false
+  
+permissions:
+  actions: read
 
 jobs:
   renew:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-    # === 恢复状态文件（仓库目录内，可持久化） ===
-    - name: Restore state cache
-      uses: actions/cache@v4
+    # ✅ Step 1: 找上一次 run
+    - name: Get previous run id
+      id: get_run
+      run: |
+        echo "Searching for latest valid state artifact..."
+
+        RUN_ID=$(curl -s \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/artifacts?per_page=50" \
+          | jq -r '
+            .artifacts[]
+            | select(.expired == false)
+            | select(.size_in_bytes > 0)
+            | select(.name | startswith("state-"))
+            | select(.workflow_run.id != '${{ github.run_id }}')
+            | .workflow_run.id
+          ' \
+          | head -n 1)
+
+        echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+    # ✅ Step 2: Restore state （推荐替换为这个）
+    - name: Restore state
+      if: steps.get_run.outputs.run_id != ''
+      uses: dawidd6/action-download-artifact@v9
       with:
-        path: |
-          ${{ github.workspace }}/.katabump_last_success
-          ${{ github.workspace }}/.katabump_need_retry
-        key: renew-state-restore
-        restore-keys: |
-          renew-state-
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        run_id: ${{ steps.get_run.outputs.run_id }}
+        name: state-*
+        name_is_regexp: true
+        path: .                    # 解压到当前目录
+        merge_multiple: true       # 如果有多个 artifact，合并到同一目录
+        skip_unpack: false       # 默认就是 false（会解压）
+            
+    # ✅ Step 3: fallback（关键）
+    - name: Fallback init state
+      if: steps.get_run.outputs.run_id == ''
+      run: |
+        echo "⚠️ No previous state found, initializing..."
+        touch .katabump_last_success
+        touch .katabump_need_retry
+
+    # ✅ Debug（建议保留）
+    - name: Debug state (详细版)
+      run: |
+        echo "=== 当前工作目录 ==="
+        pwd
+        echo "=== 根目录所有文件（包括隐藏）==="
+        ls -la
+        echo "=== 所有 .katabump 文件（递归查找）==="
+        find . -name ".katabump_*" -type f
+        echo "=== 检查可能的 state-* 目录 ==="
+        ls -la state-*/ 2>/dev/null || echo "无 state-* 目录"
 
     - name: Make scripts executable
       run: chmod +x *.sh
@@ -69,18 +116,22 @@ jobs:
         RETRY: ${{ github.workspace }}/.katabump_need_retry
       run: ./retry_if_needed.sh
 
-    # === 保存状态文件（仓库目录内，可持久化） ===
-    - name: Save state cache
-      uses: actions/cache@v4
+    # === 保存状态（artifact）===
+    - name: Upload state
+      if: always()
+      uses: actions/upload-artifact@v4
       with:
-        path: |
-          ${{ github.workspace }}/.katabump_last_success
-          ${{ github.workspace }}/.katabump_need_retry
-        key: renew-state-${{ github.run_id }}
+        name: state-${{ github.run_number }}
+        path: .katabump_*
+        retention-days: 5
+        include-hidden-files: true
 
+    # === 上传截图（调试用）===
     - name: Upload Screenshots
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: screenshots
+        name: screenshots-${{ github.run_number }}
         path: screenshots/
+        if-no-files-found: warn
+        retention-days: 5
