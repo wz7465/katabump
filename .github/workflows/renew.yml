@@ -138,32 +138,32 @@ jobs:
 
     # ⏱️ 提交 time.txt 到仓库(用于解决60天无文件变化的限制)
     - name: Commit time.txt to repo
-        env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+      env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
-
+  
         current_month=$(date +'%Y-%m')
         current_time=$(date +'%Y-%m-%d %H:%M:%S')
-
+  
         # 如果文件不存在 → 创建
         if [ ! -f time.txt ]; then
           echo "首次生成时间：$current_time" > time.txt
         else
           # 读取旧月份
           old_month=$(head -n 1 time.txt | grep -oE '[0-9]{4}-[0-9]{2}')
-
+  
           # 如果月份没变 → 不更新
           if [ "$old_month" = "$current_month" ]; then
             echo "本月已更新过，不再更新"
             exit 0
           fi
-
+  
           # 月份变了 → 更新
           echo "$current_time" > time.txt
         fi
-
+  
         git add time.txt
         git commit -m "📅 月度更新时间: $current_time"
         git push origin HEAD:main
