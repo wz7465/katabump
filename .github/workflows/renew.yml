@@ -3,7 +3,7 @@ name: Katabump Auto Renew
 on:
   schedule:
     - cron: '0 0 * * *'
-    - cron: '0 2 * * *'
+    - cron: '0 4 * * *'
   workflow_dispatch:
   repository_dispatch:
     types: [external_trigger]
