@@ -139,7 +139,7 @@ jobs:
     # ⏱️ 提交 time.txt 到仓库(用于解决60天无文件变化的限制)
     - name: Commit time.txt to repo
       env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
