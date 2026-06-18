@@ -3,7 +3,7 @@ name: Katabump Auto Renew
 on:
   schedule:
     - cron: '0 0 * * *'
-    - cron: '0 4 * * *'
+  #  - cron: '0 4 * * *'
   workflow_dispatch:
   repository_dispatch:
     types: [external_trigger]
@@ -107,7 +107,7 @@ jobs:
 
     # === 补救执行 ===
     - name: Run retry
-      if: github.event.schedule == '0 2 * * *'
+      if: github.event.schedule == '0 4 * * *'
       env:
         USERS_JSON: ${{ secrets.USERS_JSON }}
         HTTP_PROXY: ${{ secrets.HTTP_PROXY }}
