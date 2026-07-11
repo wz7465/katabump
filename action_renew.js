@@ -14,7 +14,7 @@ if (now >= target) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       chat_id: chatId,
-      text: "点击访问：https://dashboard.katabump.com/auth/login"
+      text: "续期访问：https://dashboard.katabump.com/auth/login"
     })
   })
     .then(res => {
