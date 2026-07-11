@@ -3,7 +3,7 @@ const chatId = process.env.TG_CHAT_ID;
 
 const url = `https://api.telegram.org/bot${token}/sendMessage`;
 
-const target = 1683843200; // 2026-07-13 00:00:00 UTC
+const target = 1783843200; // 2026-07-13 00:00:00 UTC
 const now = Math.floor(Date.now() / 1000);
 
 if (now >= target) {
